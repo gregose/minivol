@@ -124,7 +124,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // OPCODE TABLE //
 #define OP_NOP				0
-#define OP_MUTE			1
+#define OP_MUTE				1
 #define OP_VOL_INCR		2
 #define OP_VOL_DECR		3
 #define OP_SLEEP			4
@@ -132,6 +132,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // SBITS bits //
 #define SBITS_MUTED		0
 #define SBITS_FRUN		1
+
+// 8 MHz clock //
+#define F_CPU					8000000UL
 
 // Fuse definitions for self-clocked ATtiny24/44/84
 FUSES = {

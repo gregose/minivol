@@ -7,7 +7,7 @@
 #                customize the avrdude settings below first!
 
 # Microcontroller Type
-MCU = attiny44
+MCU = attiny24
 # MCU = attiny2313
 # MCU = atmega8
 # MCU = attiny45
@@ -21,7 +21,7 @@ TARGET = minivol
 AVRDUDE_PROGRAMMER = buspirate
 # AVRDUDE_PROGRAMMER = dt006
 
-AVRDUDE_PORT = /dev/usb    # not really needed for usb
+AVRDUDE_PORT = /dev/tty.usbserial-A800F64P
 #AVRDUDE_PORT = /dev/parport0           # linux
 # AVRDUDE_PORT = lpt1		       # windows
 
@@ -44,7 +44,6 @@ SRC = $(TARGET).c pga2320.c
 # You can also wrap lines by appending a backslash to the end of the line:
 #SRC += baz.c \
 #xyzzy.c
-
 
 
 # List Assembler source files here.
@@ -85,7 +84,6 @@ $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += -std=gnu99
 
 
-
 # Optional assembler flags.
 #  -Wa,...:   tell GCC to pass this to the assembler.
 #  -ahlms:    create listing
@@ -96,13 +94,11 @@ CFLAGS += -std=gnu99
 ASFLAGS = -Wa,-adhlns=$(<:.S=.lst),-gstabs
 
 
-
 # Optional linker flags.
 #  -Wl,...:   tell GCC to pass this to linker.
 #  -Map:      create map file
 #  --cref:    add cross reference to  map file
 LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
-
 
 
 # Additional libraries
@@ -121,9 +117,10 @@ LDFLAGS += -lm
 
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
-#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+AVRDUDE_WRITE_FUSES = -U lfuse:w:0x$(LFUSE):m -U hfuse:w:0x$(HFUSE):m -U efuse:w:0x$(EFUSE):m
 
-AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS = -p t24 -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
 
 # Uncomment the following if you want avrdude's erase cycle counter.
 # Note that this counter needs to be initialized first using -Yn,
@@ -137,10 +134,10 @@ AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
 # Increase verbosity level.  Please use this when submitting bug
 # reports about avrdude. See <http://savannah.nongnu.org/projects/avrdude>
 # to submit bug reports.
-#AVRDUDE_FLAGS += -v -v
+AVRDUDE_FLAGS += -v
 
 #Run while cable attached or don't
-AVRDUDE_FLAGS += -E reset #keep chip disabled while cable attached
+#AVRDUDE_FLAGS += -E reset #keep chip disabled while cable attached
 #AVRDUDE_FLAGS += -E noreset
 
 #AVRDUDE_WRITE_FLASH = -U lfuse:w:0x04:m #run with 8 Mhz clock
@@ -180,7 +177,6 @@ HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET).hex
 ELFSIZE = $(SIZE) -A $(TARGET).elf
 
 
-
 # Define Messages
 # English
 MSG_ERRORS_NONE = Errors: none
@@ -192,14 +188,13 @@ MSG_COFF = Converting to AVR COFF:
 MSG_EXTENDED_COFF = Converting to AVR Extended COFF:
 MSG_FLASH = Creating load file for Flash:
 MSG_EEPROM = Creating load file for EEPROM:
+MSG_FUSES = Creating fuse configuration:
 MSG_EXTENDED_LISTING = Creating Extended Listing:
 MSG_SYMBOL_TABLE = Creating Symbol Table:
 MSG_LINKING = Linking:
 MSG_COMPILING = Compiling:
 MSG_ASSEMBLING = Assembling:
 MSG_CLEANING = Cleaning project:
-
-
 
 
 # Define all object files.
@@ -214,11 +209,9 @@ ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
-
 # Default target: make program!
 all: begin gccversion sizebefore $(TARGET).elf $(TARGET).hex $(TARGET).eep \
-	$(TARGET).lss $(TARGET).sym sizeafter finished end
-#	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+	$(TARGET).lss $(TARGET).sym $(TARGET).fuses sizeafter finished end
 
 # Eye candy.
 # AVR Studio 3.x does not check make's exit code but relies on
@@ -243,12 +236,9 @@ sizeafter:
 	@if [ -f $(TARGET).elf ]; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); echo; fi
 
 
-
 # Display compiler version information.
 gccversion :
 	@$(CC) --version
-
-
 
 
 # Convert ELF to COFF for use in debugging / simulating in
@@ -272,26 +262,32 @@ extcoff: $(TARGET).elf
 	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
 
 
-
-
 # Program the device.
 program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 
-
-
+program-fuses: $(TARGET).fuses
+	$(eval LFUSE=$(shell cat $< | od -j 0 -N 1 -t x1 -A n | xargs))
+	$(eval HFUSE=$(shell cat $< | od -j 1 -N 1 -t x1 -A n | xargs))
+	$(eval EFUSE=$(shell cat $< | od -j 2 -N 1 -t x1 -A n | xargs))
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FUSES)
 
 # Create final output files (.hex, .eep) from ELF output file.
 %.hex: %.elf
 	@echo
 	@echo $(MSG_FLASH) $@
-	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
+	$(OBJCOPY) -O $(FORMAT) -R .fuse -R .lock -R .eeprom $< $@
 
 %.eep: %.elf
 	@echo
 	@echo $(MSG_EEPROM) $@
 	-$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
 	--change-section-lma .eeprom=0 -O $(FORMAT) $< $@
+
+%.fuses: %.elf
+	@echo
+	@echo $(MSG_FUSES) $@
+	-$(OBJCOPY) --dump-section .fuse=$@ $<
 
 # Create extended listing file from ELF output file.
 %.lss: %.elf
@@ -304,8 +300,6 @@ program: $(TARGET).hex $(TARGET).eep
 	@echo
 	@echo $(MSG_SYMBOL_TABLE) $@
 	avr-nm -n $< > $@
-
-
 
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
@@ -335,10 +329,6 @@ program: $(TARGET).hex $(TARGET).eep
 	$(CC) -c $(ALL_ASFLAGS) $< -o $@
 
 
-
-
-
-
 # Target: clean project.
 clean: begin clean_list finished end
 
@@ -356,6 +346,7 @@ clean_list :
 	$(REMOVE) $(TARGET).sym
 	$(REMOVE) $(TARGET).lnk
 	$(REMOVE) $(TARGET).lss
+	$(REMOVE) $(TARGET).fuses
 	$(REMOVE) $(OBJ)
 	$(REMOVE) $(LST)
 	$(REMOVE) $(SRC:.c=.s)
@@ -375,11 +366,8 @@ clean_list :
 	| sed 's,\(.*\)\.o[ :]*,\1.o \1.d : ,g' > $@; \
 	[ -s $@ ] || rm -f $@
 
-
 # Remove the '-' if you want to see the dependency files generated.
 -include $(SRC:.c=.d)
-
-
 
 # Listing of phony targets.
 .PHONY : all begin finish end sizebefore sizeafter gccversion coff extcoff \

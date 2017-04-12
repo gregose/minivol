@@ -37,3 +37,4 @@
 *.sym
 *.d
 *.eep
+*.fuses
