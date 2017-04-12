@@ -8,6 +8,7 @@
 
 # Microcontroller Type
 MCU = attiny24
+F_CPU = 8000000UL
 # MCU = attiny2313
 # MCU = atmega8
 # MCU = attiny45
@@ -81,7 +82,7 @@ $(patsubst %,-I%,$(EXTRAINCDIRS))
 #CFLAGS += -std=c89
 #CFLAGS += -std=gnu89
 #CFLAGS += -std=c99
-CFLAGS += -std=gnu99
+CFLAGS += -std=gnu99 -DF_CPU=$(F_CPU)
 
 
 # Optional assembler flags.

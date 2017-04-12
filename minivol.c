@@ -104,7 +104,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // MEMORY //
 #define QUEUE_SIZE		5
-#define EEPROM_BASE		0x00	/* uses 3 bytes starting at this address */
+#define EEPROM_BASE		((void *)0x00)	/* uses 3 bytes starting at this address */
 
 // For convenience...
 #define MLED_PORT_D		STR_CONCAT(DDR,MLED_PORT)
@@ -132,9 +132,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // SBITS bits //
 #define SBITS_MUTED		0
 #define SBITS_FRUN		1
-
-// 8 MHz clock //
-#define F_CPU					8000000UL
 
 // Fuse definitions for self-clocked ATtiny24/44/84
 FUSES = {
@@ -213,16 +210,16 @@ volatile struct db_status_t db_status;
 
 // PROTOTYPES //
 
-void pin_setup();
-void int_setup();
+void pin_setup(void);
+void int_setup(void);
 void ramp_volume(uint8_t, uint8_t);
 void queue_event(uint8_t);
-void process_event();
-void start_ee_timer();
-void write_ee_state();
-void set_ee_state();
-void start_scan_timer();
-int main();
+void process_event(void);
+void start_ee_timer(void);
+void write_ee_state(void);
+void set_ee_state(void);
+void start_scan_timer(void);
+int main(void);
 
 // Sets up I/O pin registers
 // If necessary on tiny uCs, a few bytes could be saved by setting each with one
@@ -487,7 +484,7 @@ void write_ee_state()
 void set_ee_state()
 {
 	uint8_t cur[3];
-	eeprom_read_block(&cur, (void *)EEPROM_BASE, 3);
+	eeprom_read_block(&cur, EEPROM_BASE, 3);
 
 	status.left_vol = cur[0];
 	status.right_vol = cur[1];
