@@ -124,7 +124,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // OPCODE TABLE //
 #define OP_NOP				0
-#define OP_MUTE			1
+#define OP_MUTE				1
 #define OP_VOL_INCR		2
 #define OP_VOL_DECR		3
 #define OP_SLEEP			4
@@ -133,10 +133,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SBITS_MUTED		0
 #define SBITS_FRUN		1
 
+// 8 MHz clock //
+#define F_CPU					8000000UL
+
 // Fuse definitions for self-clocked ATtiny24/44/84
 FUSES = {
-	.low	= (CKSEL0 & CKSEL2 & CKSEL3 & SUT1),
-	.high	= (SPIEN),
+	.low	= (FUSE_CKSEL0 & FUSE_CKSEL2 & FUSE_CKSEL3 & FUSE_SUT1),
+	.high	= (FUSE_SPIEN),
 	.extended = EFUSE_DEFAULT
 };
 
@@ -147,7 +150,7 @@ struct minivol_queue_t {
 	uint8_t	opcode;
 };
 
-/* 
+/*
  * Store the status of the controller (doesn't coincide with PGA settings)
  * In particular, the volumes stored are not adjusted for mute status
  */
@@ -337,7 +340,7 @@ void process_event()
 				}
 			}
 
-			
+
 			if (!(GN_PORT_I & _BV(GN_PIN))) { // gain cap disabled
 				status.left_vol = (status.left_vol > (0xff - GAIN_STEP)) ? status.left_vol : status.left_vol + GAIN_STEP;
 				status.right_vol = (status.right_vol > (0xff - GAIN_STEP)) ? status.right_vol : status.right_vol + GAIN_STEP;
@@ -377,7 +380,7 @@ void process_event()
 // ref: http://www.ganssle.com/debouncing.pdf
 ISR(TIM0_COMPA_vect) {
 	uint8_t i, acc, changed;
-	
+
 	// Inputs are pulled up, so invert the input port
 	db_status.state[db_status.index] = ~BTN_PORT_I & BTN_MASK;
 	db_status.index++;

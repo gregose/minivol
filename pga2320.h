@@ -84,7 +84,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Should be called prior to use of other pga_* functions. Initializes
  * internal state and configures I/O pins.
  */
-void pga_init();
+void pga_init(void);
 
 #if PGA_ENABLE_MT
 	/* void pga_mute(uint8_t)
@@ -115,4 +115,4 @@ struct pga_status_t {
  */
 volatile struct pga_status_t pga_status;
 
-#endif
+#endif

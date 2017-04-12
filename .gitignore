@@ -31,3 +31,10 @@
 # Debug files
 *.dSYM/
 *.su
+*.lss
+*.lst
+*.map
+*.sym
+*.d
+*.eep
+*.fuses
