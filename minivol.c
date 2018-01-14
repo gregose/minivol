@@ -95,12 +95,10 @@ FUSES = {
 void pin_setup() {
 	// Set up data direction registers
 	MLED_PORT_D |= _BV(MLED_PIN);
-	ENC_PORT_D  &= ~_BV(ENC_PIN);
 	GN_PORT_D	&= ~_BV(GN_PIN);
 	BTN_PORT_D	&= ~(_BV(A_PIN) | _BV(B_PIN) | _BV(MT_PIN));
 
 	// Set up pull-ups on inputs
-	ENC_PORT_O	|= _BV(ENC_PIN);
 	GN_PORT_O	|= _BV(GN_PIN);
 	BTN_PORT_O	|= _BV(A_PIN) | _BV(B_PIN) | _BV(MT_PIN);
 
@@ -124,10 +122,18 @@ void int_setup() {
 	sei();
 }
 
+// Set both the output of the PGA and leds via the sn74hc595
+void set_volume(uint8_t vol_l, uint8_t vol_r) {
+	uint8_t led_output = vol_l >> 1; // 2
+
+	pga_set_volume(vol_l, vol_r);
+	sn74hc595_set_output(led_output);
+}
+
 // Ramp smoothly between the current volume and the given target
 void ramp_volume(uint8_t target_l, uint8_t target_r) {
 	#if RAMP_DELAY == -1
-		pga_set_volume(target_l, target_r);
+		set_volume(target_l, target_r);
 	#else
 		uint8_t new_l, new_r;
 		while (pga_status.left_vol != target_l || pga_status.right_vol != target_r) {
@@ -142,7 +148,7 @@ void ramp_volume(uint8_t target_l, uint8_t target_r) {
 								pga_status.right_vol - 1 :
 								pga_status.right_vol;
 
-			pga_set_volume(new_l, new_r);
+			set_volume(new_l, new_r);
 			#if RAMP_DELAY
 				_delay_ms(RAMP_DELAY);
 			#endif
@@ -204,7 +210,6 @@ void process_event()
 					return;
 				}
 			}
-
 
 			if (!(GN_PORT_I & _BV(GN_PIN))) { // gain cap disabled
 				status.left_vol = (status.left_vol > (0xff - GAIN_STEP)) ? status.left_vol : status.left_vol + GAIN_STEP;
@@ -272,50 +277,49 @@ ISR(TIM0_COMPA_vect) {
 				queue_event(OP_MUTE);
 			}
 		}
-		if (!(ENC_PORT_I & _BV(ENC_PIN))) {
-			// Shift left 2 bits so previous state moves to the proper spot
-			status.enc_status <<= 2;
-			// Store current state in the 2 LSB
-			status.enc_status |= (((acc & _BV(A_PIN)) >> A_PIN) << 1) | ((acc & _BV(B_PIN)) >> B_PIN);
-			// Clear the top 4 bits
-			status.enc_status &= 0x0f;
+#ifndef PUSH_BUTTON_MODE
+		// Shift left 2 bits so previous state moves to the proper spot
+		status.enc_status <<= 2;
+		// Store current state in the 2 LSB
+		status.enc_status |= (((acc & _BV(A_PIN)) >> A_PIN) << 1) | ((acc & _BV(B_PIN)) >> B_PIN);
+		// Clear the top 4 bits
+		status.enc_status &= 0x0f;
 
-			if (ENC_LUT[status.enc_status] == 1) {
-				queue_event(OP_VOL_INCR);
-			}
-			if (ENC_LUT[status.enc_status] == 2) {
-				queue_event(OP_VOL_DECR);
-			}
-			// if it's an invalid state, do nothing
-		} else {
-			if (changed & _BV(A_PIN) && !(changed & _BV(B_PIN))) {
-				if (acc & _BV(A_PIN)) {
-						queue_event(OP_VOL_INCR);
-				}
-				db_status.held_count_a = 0;
-			}
-
-			if (changed & _BV(B_PIN) && !(changed & _BV(A_PIN))) {
-				if (acc & _BV(B_PIN)) {
-						queue_event(OP_VOL_DECR);
-				}
-				db_status.held_count_b = 0;
-			}
-		}
-	}
-
-
-	// Only do this if set for button mode
-	if (ENC_PORT_I & _BV(ENC_PIN)) {
-		if (db_status.held_count_a == HELD_COUNT) {
+		if (ENC_LUT[status.enc_status] == 1) {
 			queue_event(OP_VOL_INCR);
-			db_status.held_count_a = HELD_COUNT - REPEAT_COUNT;
 		}
-		if (db_status.held_count_b == HELD_COUNT) {
+		if (ENC_LUT[status.enc_status] == 2) {
 			queue_event(OP_VOL_DECR);
-			db_status.held_count_b = HELD_COUNT - REPEAT_COUNT;
 		}
+		// if it's an invalid state, do nothing
+#elif
+		if (changed & _BV(A_PIN) && !(changed & _BV(B_PIN))) {
+			if (acc & _BV(A_PIN)) {
+					queue_event(OP_VOL_INCR);
+			}
+			db_status.held_count_a = 0;
+		}
+
+		if (changed & _BV(B_PIN) && !(changed & _BV(A_PIN))) {
+			if (acc & _BV(B_PIN)) {
+					queue_event(OP_VOL_DECR);
+			}
+			db_status.held_count_b = 0;
+		}
+#endif
 	}
+
+#ifdef PUSH_BUTTON_MODE
+	// Only do this if set for button mode
+	if (db_status.held_count_a == HELD_COUNT) {
+		queue_event(OP_VOL_INCR);
+		db_status.held_count_a = HELD_COUNT - REPEAT_COUNT;
+	}
+	if (db_status.held_count_b == HELD_COUNT) {
+		queue_event(OP_VOL_DECR);
+		db_status.held_count_b = HELD_COUNT - REPEAT_COUNT;
+	}
+#endif
 }
 
 ISR(TIM1_COMPA_vect)
@@ -363,13 +367,13 @@ void set_ee_state()
 		status.left_vol = 0;
 		status.right_vol = 0;
 		status.sbits = 0;
-		pga_set_volume(status.left_vol, status.right_vol);
+		set_volume(status.left_vol, status.right_vol);
 	} else if (status.sbits & _BV(SBITS_MUTED)) {
-		// OP_MUTE will both call pga_set_volume and calculate proper
+		// OP_MUTE will both call set_volume and calculate proper
 		// muted volume.
 		queue_event(OP_MUTE);
 	} else {
-		pga_set_volume(status.left_vol, status.right_vol);
+		set_volume(status.left_vol, status.right_vol);
 	}
 }
 

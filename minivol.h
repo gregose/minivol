@@ -14,20 +14,21 @@
 #define GAIN_STEP	2   /* 1dB */
 #define GAIN_CAP	192 /* 0dB */
 
+// Uncomment below to use push button mode
+//#define PUSH_BUTTON_MODE
+
 // In milliseconds, how long to wait between each volume step while ramping. Set
 // to -1 to disable ramping.
 #define RAMP_DELAY 1
 // How many steps to attenuate from the current level when muting. Set to 0 to mute
 // fully.
-#define MUTE_ATTN  72 /* 36dB */
+#define MUTE_ATTN  0 /* full */
+//#define MUTE_ATTN  72 /* 36dB */
 
 // I/O PORT CONFIG //
 
 #define MLED_PORT	B
 #define MLED_PIN	PB0
-
-#define ENC_PORT	B
-#define ENC_PIN	PB1
 
 #define GN_PORT	B
 #define GN_PIN		PB2
@@ -69,17 +70,14 @@
 
 // For convenience...
 #define MLED_PORT_D		STR_CONCAT(DDR,MLED_PORT)
-#define ENC_PORT_D		STR_CONCAT(DDR,ENC_PORT)
 #define GN_PORT_D			STR_CONCAT(DDR,GN_PORT)
 #define BTN_PORT_D		STR_CONCAT(DDR,BTN_PORT)
 
 #define MLED_PORT_O		STR_CONCAT(PORT,MLED_PORT)
-#define ENC_PORT_O		STR_CONCAT(PORT,ENC_PORT)
 #define GN_PORT_O			STR_CONCAT(PORT,GN_PORT)
 #define BTN_PORT_O		STR_CONCAT(PORT,BTN_PORT)
 
 #define MLED_PORT_I		STR_CONCAT(PIN,MLED_PORT)
-#define ENC_PORT_I		STR_CONCAT(PIN,ENC_PORT)
 #define GN_PORT_I			STR_CONCAT(PIN,GN_PORT)
 #define BTN_PORT_I		STR_CONCAT(PIN,BTN_PORT)
 
@@ -134,6 +132,7 @@ volatile struct db_status_t db_status;
 void pin_setup(void);
 void int_setup(void);
 void ramp_volume(uint8_t, uint8_t);
+void set_volume(uint8_t, uint8_t);
 void queue_event(uint8_t);
 void process_event(void);
 void start_ee_timer(void);
