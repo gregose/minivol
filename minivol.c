@@ -53,6 +53,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sn74hc595.h"
 
 // CONSTANTS //
+
+/*
+* Lookup table to decode rotary encoder. Indexed by a 4-bit nibble
+* representing the previous state in the 2 MSB and the current state
+* in the 2 LSB. Gives the decoded change for the the indicated state:
+*  0 = invalid state change
+*  1 = up
+*  2 = down
+*/
 uint8_t ENC_LUT[16] =
 {
 	0,	// 00->00
