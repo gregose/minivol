@@ -124,7 +124,15 @@ void int_setup() {
 
 // Set both the output of the PGA and leds via the sn74hc595
 void set_volume(uint8_t vol_l, uint8_t vol_r) {
-	uint8_t led_output = vol_l >> 1; // 2
+
+	// Figure out which LEDs to light, 16 steps per LED
+	uint8_t led_output = 0;
+	if (vol_l > 0) {
+		uint8_t msb = (vol_l >> 1) / 16;
+		do {
+			led_output |= (1 << msb);
+		} while(msb--);
+	}
 
 	pga_set_volume(vol_l, vol_r);
 	sn74hc595_set_output(led_output);
