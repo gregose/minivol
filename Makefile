@@ -36,7 +36,7 @@ OPT = s
 FORMAT = ihex
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c pga2320.c
+SRC = $(TARGET).c spi.c sn74hc595.c pga2320.c
 
 # If there is more than one source file, append them above, or modify and
 # uncomment the following:

@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _PGA2320_H
 #define _PGA2320_H
 
-#include <avr/io.h>
+#include "spi.h"
 
 #define PGA_MT_PORT	A
 #define PGA_MT_PIN	PA3
@@ -53,31 +53,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* undefine this to free up the pin */
 #define PGA_ENABLE_MT	1
 
-/* SPI configuration
-	It's just bit banged and should work on any port on any AVR
-*/
-
-#define PGA_SPI_PORT		A
-#define PGA_USCK_PIN		PA4
-#define PGA_DO_PIN		PA6
-
 // end configuration //
-
-#ifndef STR_CONCAT_PRIM
-#define STR_CONCAT_PRIM(a, b)	a ## b
-#endif
-#ifndef STR_CONCAT
-#define STR_CONCAT(a, b)	STR_CONCAT_PRIM(a, b)
-#endif
 
 /* convenience... */
 #define PGA_MT_PORT_OUT	STR_CONCAT(PORT, PGA_MT_PORT)
 #define PGA_CS_PORT_OUT	STR_CONCAT(PORT, PGA_CS_PORT)
-#define PGA_SP_PORT_OUT	STR_CONCAT(PORT, PGA_SPI_PORT)
 
 #define PGA_MT_PORT_DDR	STR_CONCAT(DDR, PGA_MT_PORT)
 #define PGA_CS_PORT_DDR	STR_CONCAT(DDR, PGA_CS_PORT)
-#define PGA_SP_PORT_DDR	STR_CONCAT(DDR, PGA_SPI_PORT)
 
 /* void pga_init()
  *
