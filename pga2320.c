@@ -41,24 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "pga2320.h"
 
-static inline void spi_write(uint8_t byte)
-{
-	uint8_t i;
-
-	for (i=0; i < 8; i++)
-	{
-		PGA_SP_PORT_OUT &= (uint8_t)~_BV(PGA_USCK_PIN);
-
-		if (0x80 & byte)	// MSB is set
-			PGA_SP_PORT_OUT |= _BV(PGA_DO_PIN);
-		else
-			PGA_SP_PORT_OUT &= (uint8_t)~_BV(PGA_DO_PIN);
-
-		PGA_SP_PORT_OUT |= _BV(PGA_USCK_PIN);
-		byte <<= 1;
-	}
-}
-
 void pga_init()
 {
 	// enable pull-ups for pins that idle high to avoid an unecessary edge
@@ -69,9 +51,6 @@ void pga_init()
 		PGA_MT_PORT_DDR |= _BV(PGA_MT_PIN);
 		PGA_MT_PORT_OUT &= (uint8_t)~_BV(PGA_MT_PIN);
 	#endif
-
-	PGA_SP_PORT_DDR |= _BV(PGA_USCK_PIN) | _BV(PGA_DO_PIN);
-	PGA_SP_PORT_OUT &= (uint8_t)~(_BV(PGA_USCK_PIN) | _BV(PGA_DO_PIN));
 
 	pga_status.left_vol = 0;
 	pga_status.right_vol = 0;
@@ -92,13 +71,13 @@ void pga_init()
 void pga_set_volume(uint8_t left, uint8_t right)
 {
 	// assert CS
-	PGA_SP_PORT_OUT &= (uint8_t)~_BV(PGA_CS_PIN);
+	PGA_CS_PORT_OUT &= (uint8_t)~_BV(PGA_CS_PIN);
 
 	spi_write(right);		// right
 	spi_write(left);		// left
 
 	// deassert CS
-	PGA_SP_PORT_OUT |= _BV(PGA_CS_PIN);
+	PGA_CS_PORT_OUT |= _BV(PGA_CS_PIN);
 
 	pga_status.left_vol = left;
 	pga_status.right_vol = right;
