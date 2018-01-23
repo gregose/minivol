@@ -38,3 +38,7 @@
 *.d
 *.eep
 *.fuses
+
+.DS_Store
+*.kicad_pcb-bak
+*.bak
